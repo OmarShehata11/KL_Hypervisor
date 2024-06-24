@@ -7,7 +7,7 @@
 #include <strsafe.h>
 #include <intrin.h>
 #include <Windows.h>
-#include "../HypervisorTest/DriverHeader.h"
+#include "UserHeader.h"
 
 using namespace std;
 
@@ -136,6 +136,19 @@ main()
     BOOL isSuccess = DeviceIoControl(hWnd, HV_CTL_CODE, &buffStruct, HV_BUFFER_SIZE, NULL, 0, &bytesReturned, NULL);
     if (isSuccess)
         cout << "the IOCTL code is good bro" << endl;
+
+    char exitChar;
+    while (true)
+    {
+        cout << "\n\nENTER 'c' to cancel the virtualization and unload the driver ..\n";
+        cin >> exitChar;
+
+        if (exitChar == 'c')
+            break;
+        else
+            cout << "[-] ERROR : unknow option : " << exitChar << endl;
+
+    }
     
     CloseHandle(hWnd);  
 
