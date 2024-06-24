@@ -2,6 +2,9 @@
 #pragma once
 // here we will define the IOCTL to be used for user mode
 
+/* some typedef */
+typedef UCHAR BYTE;
+
 /* global variables */
 
 #define HV_CTL_CODE CTL_CODE(FILE_DEVICE_UNKNOWN, 0x8ccc, METHOD_BUFFERED, FILE_READ_DATA | FILE_WRITE_DATA)
@@ -123,6 +126,9 @@ extern "C" inline void __fastcall HvAsmEnableVmx(VOID);
 extern "C" inline void __fastcall HvAsmSafeStackState(VOID);
 extern "C" inline ULONG64 __fastcall HvAsmRestoreState(VOID);
 
+extern "C" inline ULONG64 __fastcall HvAsmSaveCoreState(VOID);
+extern "C" inline void __fastcall HvAsmRestoreCoreState(VOID);
+
 extern "C" inline USHORT __fastcall GetCs(VOID);
 extern "C" inline USHORT __fastcall GetDs(VOID);
 extern "C" inline USHORT __fastcall GetEs(VOID);
@@ -137,6 +143,11 @@ extern "C" inline ULONG64 __fastcall GetRflags(VOID);
 extern "C" inline ULONG64 __fastcall GetGdtBase(VOID);
 extern "C" inline ULONG64 __fastcall GetIdtBase(VOID);
 extern "C" inline void __fastcall AsmVmexitHandler(VOID);
+
+extern "C" inline void __fastcall HvAsmVmxoffHandler(ULONG64 Rip, ULONG64 Rsp);
+
+extern "C" inline ULONG64 __fastcall MSRRead(ULONG32 reg);
+extern "C" inline void __fastcall MSRWrite(ULONG32 reg, ULONG64 MsrValue);
 
 
 /* function support */

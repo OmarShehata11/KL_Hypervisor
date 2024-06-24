@@ -1,7 +1,10 @@
-
 PUBLIC HvAsmEnableVmx
 PUBLIC HvAsmSafeStackState
 PUBLIC HvAsmRestoreState
+
+; this is needed for the virtualization of the whole system.
+PUBLIC HvAsmSaveCoreState
+PUBLIC HvAsmRestoreCoreState
 
 PUBLIC GetCs
 PUBLIC GetDs
@@ -17,14 +20,19 @@ PUBLIC GetGdtLimit
 PUBLIC GetIdtLimit
 PUBLIC GetRflags
 
+PUBLIC MSRRead
+PUBLIC MSRWrite
+
 PUBLIC AsmVmexitHandler
+PUBLIC HvAsmVmxoffHandler
 
 EXTERN MainVmexitHandler:PROC
 EXTERN VmResumeInstruction:PROC
 
 .data
-	g_rbpPreviousState QWORD 0
-	g_rspPreviousState QWORD 0
+	g_rbpPreviousState QWORD 0  
+	g_rspPreviousState QWORD 0	 
+	
 
 .code _text
 
@@ -74,7 +82,7 @@ HvAsmRestoreState PROC PUBLIC
 	; RETURN TRUE
 	MOV RAX, 1
 	
-	; RETURN SECTION (NEED TO BE STUDIED MOREEEE)
+	; RETURN SECTION
 	ADD RSP, 50h
 	POP RDI
 	
@@ -241,6 +249,7 @@ AsmVmexitHandler PROC
 	CALL	MainVmexitHandler
 	ADD	RSP, 28h	
 
+	; IF WE REACHED HERE, DO THE CALL TO VMRESUME NORMALLY ..
 	POP RAX
     POP RCX
     POP RDX
@@ -266,5 +275,106 @@ AsmVmexitHandler ENDP
 
 ;------------------------------------------------------------------------
 
+HvAsmSaveCoreState PROC
+	PUSH RAX
+	PUSH RCX
+	PUSH RDX
+	PUSH RBX
+	PUSH RBP
+	PUSH RSI
+	PUSH RDI
+	PUSH R8
+	PUSH R9
+	PUSH R10
+	PUSH R11
+	PUSH R12
+	PUSH R13
+	PUSH R14
+	PUSH R15
+	
+	MOV RAX, RSP	;the GuestStack returned value
+
+	RET 
+HvAsmSaveCoreState ENDP
+
+;------------------------------------------------------------------------
+
+HvAsmRestoreCoreState PROC
+	POP R15
+	POP R14
+	POP R13
+	POP R12
+	POP R11
+	POP R10
+	POP R9
+	POP R8
+	POP RDI
+	POP RSI
+	POP RBP
+	POP RBX
+	POP RDX
+	POP RCX
+	POP RAX
+
+	RET
+HvAsmRestoreCoreState ENDP
+
+;------------------------------------------------------------------------
+
+MSRRead PROC
+
+	RDMSR				; MSR[ECX] --> EDX:EAX
+	SHL		RDX, 32
+	OR		RAX, RDX
+
+	RET
+
+MSRRead ENDP
+
+;------------------------------------------------------------------------
+
+MSRWrite PROC
+
+	MOV		RAX, RDX
+	SHR		RDX, 32
+	WRMSR
+	RET
+
+MSRWrite ENDP
+
+;------------------------------------------------------------------------
+
+HvAsmVmxoffHandler PROC
+	; IF WE REACHED HERE, THEN DO THE VMXOFF BUT DON'T FORGET TO REMOVE THE SHADOW SPACE ALLOCATED 
+	; INSIDE THE AsmVmexitHandler FUNCTION.
+	ADD RSP, 28h
+
+	VMXOFF 
+
+	POP RAX
+    POP RCX
+    POP RDX
+    POP RBX
+    POP RBP		; RSP
+    POP RBP
+    POP RSI
+    POP RDI 
+    POP R8
+    POP R9
+    POP R10
+    POP R11
+    POP R12
+    POP R13
+    POP R14
+    POP R15
+
+	; WE HAVE 2 ARGs, THE FIRST IS THE GUEST_RIP, SECOND : GUEST_RSP
+	MOV RSP, RDX ; SECOND ARG
+
+	JMP RCX ; FIRST ARG
+
+HvAsmVmxoffHandler ENDP
+
+;------------------------------------------------------------------------
 
 END

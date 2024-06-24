@@ -5,8 +5,6 @@
 #include "vmxHeader.h"
 
 
-
-
 EXTERN_C_START;
 
 
@@ -15,9 +13,6 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING);
 
 /* Driver Unload routine */
 VOID DriverUnload(PDRIVER_OBJECT DriverObject);
-
-
-
 
 
 EXTERN_C_END;
@@ -92,15 +87,17 @@ NTSTATUS DriverEntry(PDRIVER_OBJECT DriverObject, PUNICODE_STRING)
 	}
 
 	// now fill the guest memory with the HLT instruction : \xf4
-
+	
+	/*
 	PVOID Instruction = "\xF4";  // HLT instruction
 	for (int i = 0; i < (HV_GUEST_MEMORY_SIZE - 1); i++)
 	{
 		memcpy_s((PVOID)((UINT64)(VirtualMachineState.GuestVirtualMemAddress) + 1), HV_GUEST_MEMORY_SIZE, Instruction, 1);
 	}
+	*/
 
 	// we will run our VM on the first core only
-	BOOLEAN isSuccess = HvLaunchVm(0);
+	BOOLEAN isSuccess = HvLaunchVm(1);
 
 	if (!isSuccess)
 	{

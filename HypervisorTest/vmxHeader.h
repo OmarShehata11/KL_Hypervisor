@@ -3,6 +3,28 @@
 #include "MemoryHeader.h"
 
 
+//
+// SOME MACROS
+//
+
+#define RPL_MASK       3
+#define DPL_SYSTEM     0
+
+
+//
+// HYPEVISOR CPUID
+//
+#define HYPERV_CPUID_VENDOR_AND_MAX_FUNCTIONS 0x40000000
+#define HYPERV_CPUID_INTERFACE                0x40000001
+#define HYPERV_CPUID_VERSION                  0x40000002
+#define HYPERV_CPUID_FEATURES                 0x40000003
+#define HYPERV_CPUID_ENLIGHTMENT_INFO         0x40000004
+#define HYPERV_CPUID_IMPLEMENT_LIMITS         0x40000005
+
+#define HYPERV_HYPERVISOR_PRESENT_BIT 0x80000000
+#define HYPERV_CPUID_MIN              0x40000005
+#define HYPERV_CPUID_MAX              0x4000ffff
+
 
 // see the intel manual, chapter 25, volume 3C.
 // PIN-Based Execution
@@ -39,6 +61,9 @@
 #define CPU_BASED_CTL2_ENABLE_VPID        0x20
 #define CPU_BASED_CTL2_UNRESTRICTED_GUEST 0x80
 #define CPU_BASED_CTL2_ENABLE_VMFUNC      0x2000
+#define CPU_BASED_CTL2_ENABLE_XSAVE_XRSTORS 0x100000
+#define CPU_BASED_CTL2_ENABLE_INVPCID 0x1000
+
 
 // VM-exit Control Bits
 #define VM_EXIT_IA32E_MODE       0x00000200
@@ -250,6 +275,12 @@ enum VMCS_FIELDS
 #define EXIT_REASON_XRSTORS                      64
 #define EXIT_REASON_PCOMMIT                      65
 
+// Exit Qualifications for MOV for Control Register Access
+#define TYPE_MOV_TO_CR   0
+#define TYPE_MOV_FROM_CR 1
+#define TYPE_CLTS        2
+#define TYPE_LMSW        3
+
 enum SEGREGS
 {
     ES = 0,
@@ -331,7 +362,29 @@ typedef struct _GUEST_REGS
     ULONG64 r15;
 } GUEST_REGS, * PGUEST_REGS;
 
-NTSTATUS HvSetUpVmcs(PHV_VIRTUAL_MACHINE_STATE VmState);
+
+
+typedef union _HV_MOV_CR_QUALIFICATION
+{
+    ULONG_PTR All;
+    struct
+    {
+        ULONG ControlRegister : 4;
+        ULONG AccessType : 2;
+        ULONG LMSWOperandType : 1;
+        ULONG Reserved1 : 1;
+        ULONG Register : 4;
+        ULONG Reserved2 : 4;
+        ULONG LMSWSourceData : 16;
+        ULONG Reserved3;
+    } Fields;
+} HV_MOV_CR_QUALIFICATION, *PHV_MOV_CR_QUALIFICATION;
+
+
+
+
+
+NTSTATUS HvSetUpVmcs(PHV_VIRTUAL_MACHINE_STATE VmState, ULONG64 GuestStack);
 VOID
 HvFillGuestSelectorData(
     PVOID  GdtBase,
@@ -349,3 +402,11 @@ BOOLEAN HvLaunchVm(_In_ int NumOfCores);
 
 extern "C" VOID MainVmexitHandler(PGUEST_REGS GuestRegs);
 extern "C" VOID VmResumeInstruction();
+
+void HvSendCpuidForVmxoff(KAFFINITY affinity);
+void HvLaunchVmIns();
+VOID HvHandleControlRegisterAccess(PGUEST_REGS GuestState);
+VOID HandleMSRRead(PGUEST_REGS GuestRegs);
+VOID HandleMSRWrite(PGUEST_REGS GuestRegs);
+BOOLEAN HvHandleCPUID(PGUEST_REGS state);
+VOID SetBit(PVOID Addr, UINT64 Bit, BOOLEAN Set);

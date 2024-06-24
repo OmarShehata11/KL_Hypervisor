@@ -23,7 +23,8 @@
 #define HV_EPT_PML4E_TAG 'pmlT'
 #define HV_EPT_PTE_TAG 'pteT'
 #define HV_GUEST_MEM_TAG 'Ttsg'
-#define HV_STACK_TAG 'ktsT'
+#define HV_STACK_TAG_CORE_0 0x63735430 /* 'csT0' */
+
 
 /* 4 LEVEL PAGING */
 /* with 36 physical address long */
